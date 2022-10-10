@@ -13,7 +13,7 @@
 .NOTES
     Filename: CyberArk_BulkCreateSafes.ps1
     Author: Kaarel Virroja
-    Modified date: 2022-10-07
+    Modified date: 2022-10-10
     Version 1.2 - Ask for description.
 #>
 
