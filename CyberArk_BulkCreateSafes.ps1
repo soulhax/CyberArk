@@ -39,7 +39,7 @@ if ([string]::IsNullOrWhiteSpace($File)) {
     #Logon
     New-PASSession -Credential $LogonCredential -BaseURI $URL
 
-    #Create Safes
+    #Create Safes. The {0} and {1} are where the variable swhich are going to be users firstname and lastname from the CSV file.
     foreach ($User in $Users){
 
         $FirstName = $User.firstname
