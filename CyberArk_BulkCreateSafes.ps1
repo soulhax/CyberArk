@@ -14,7 +14,7 @@
     Filename: CyberArk_BulkCreateSafes.ps1
     Author: Kaarel Virroja
     Modified date: 2022-10-07
-    Version 1.1 - Check if input is empty.
+    Version 1.2 - Ask for description.
 #>
 
 #Ask for the CSV path
@@ -27,6 +27,7 @@ if ([string]::IsNullOrWhiteSpace($File)) {
 } else {
     #Ask for the URL of PVWA
     $URL = Read-Host -Prompt "Please enter the URL for the PVWA"
+    $DESC = Read-Host -Prompt "Description for safe (leave empty if not needed)"
 
 
     #Specify file location
@@ -38,14 +39,14 @@ if ([string]::IsNullOrWhiteSpace($File)) {
     #Logon
     New-PASSession -Credential $LogonCredential -BaseURI $URL
 
-    #Create Safes. The {0} and {1} are where the variable swhich are going to be users firstname and lastname from the CSV file.
+    #Create Safes
     foreach ($User in $Users){
 
         $FirstName = $User.firstname
         $LastName = $User.lastname
         $SafeName = "YOUR-SAFEFORMAT-{0}-{1}-HERE" -f $FirstName, $LastName
 
-        Add-PASSafe -SafeName $SafeName -Description "YOUR SAFE DESCRIPTION HERE" -ManagingCPM PasswordManager -NumberOfVersionsRetention 7
+        Add-PASSafe -SafeName $SafeName -Description $DESC -ManagingCPM PasswordManager -NumberOfVersionsRetention 7
 
     }
 
