@@ -13,7 +13,7 @@
 .EXAMPLE
 
 .NOTES
-    Filename: CyberArk_BulkCreateSafes.ps1
+    Filename: CyberArk_BulkAddSafeMembers.ps1
     Author: Kaarel Virroja
     Modified date: 2022-10-11
     Version 1.1 - Changed the whole code because it wasn't working as expected.
