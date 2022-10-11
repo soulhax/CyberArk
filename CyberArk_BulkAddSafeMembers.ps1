@@ -8,13 +8,15 @@
 
     Also this script requires you to use PowerShell module for the CyberArk API which you can find here - https://github.com/pspete/psPAS
 
+    NB! Change permissions according to your needs. <--
+
 .EXAMPLE
 
 .NOTES
-    Filename: CyberArk_BulkAddSafeMembers.ps1
+    Filename: CyberArk_BulkCreateSafes.ps1
     Author: Kaarel Virroja
-    Modified date: 2022-10-10
-    Version 1.0 - Release.
+    Modified date: 2022-10-11
+    Version 1.1 - Changed the whole code because it wasn't working as expected.
 #>
 
 #Ask for the CSV path
@@ -28,8 +30,15 @@ if ([string]::IsNullOrWhiteSpace($File)) {
     #Ask for the URL of PVWA
     $URL = Read-Host -Prompt "Please enter the URL for the PVWA"
 
-    #Ask if we're going to add the same users to the safe or not
+    #Ask if we're going to add the same users to the safe or not.
     $SAME_USER = Read-Host "Add the same user to the safe as in CSV file? Yes/No"
+
+    #Ask which permissions are we going to append.
+    $AskRole = Read-Host "Please specify which list of roles (admin/user)"
+
+    while("admin","user" -notcontains $AskRole) {
+        $AskRole = Read-Host "Please specify which list of roles (admin/user)"
+    }
 
     #Specify file location
     $Users = Import-Csv -Path $File
@@ -39,54 +48,108 @@ if ([string]::IsNullOrWhiteSpace($File)) {
         $SAME_USER = Read-Host "Add the same user to the safe as in CSV file? Yes/No"
     }
 
-    #If users enter's no then we are going to ask for a name that is going to be added into the safe
-    if ($SAME_USER -eq "No") {
-        $FirstName = Read-Host -Prompt "Please enter the first name"
-        $LastName = Read-Host -Prompt "Please enter the last name"
-        $Fullname = "{0}.{1}" -f $FirstName, $LastName
-    }
-
-    #Specify Vault Logon Credentials
+    #Specify Vault Logon Credentials.
     $LogonCredential = Get-Credential
 
     #Logon
     New-PASSession -Credential $LogonCredential -BaseURI $URL
 
-    #Add users to safe's
-    foreach ($User in $Users){
+    #Permissions <--
+    $AvgUser = [PSCustomObject]@{
+        UseAccounts                            = $true
+        RetrieveAccounts                       = $true
+        ListAccounts                           = $true
+        AddAccounts                            = $false
+        UpdateAccountContent                   = $false
+        UpdateAccountProperties                = $false
+        InitiateCPMAccountManagementOperations = $false
+        SpecifyNextAccountContent              = $false
+        RenameAccounts                         = $false
+        DeleteAccounts                         = $false
+        UnlockAccounts                         = $false
+        ManageSafe                             = $false
+        ManageSafeMembers                      = $false
+        BackupSafe                             = $false
+        ViewAuditLog                           = $false
+        ViewSafeMembers                        = $false
+        requestsAuthorizationLevel1            = $false
+        requestsAuthorizationLevel2            = $false
+        AccessWithoutConfirmation              = $false
+        CreateFolders                          = $false
+        DeleteFolders                          = $false
+        MoveAccountsAndFolders                 = $false
+    }
 
-        $FirstName = $User.firstname
-        $LastName = $User.lastname
-        $SafeName = "YOUR-SAFEFORMAT-{0}-{1}-HERE" -f $FirstName, $LastName
-        $Fullname = "{0}.{1}" -f $FirstName, $LastName
+    $Admin = [PSCustomObject]@{
+        UseAccounts                            = $false
+        RetrieveAccounts                       = $false
+        ListAccounts                           = $true
+        AddAccounts                            = $true
+        UpdateAccountContent                   = $true
+        UpdateAccountProperties                = $true
+        InitiateCPMAccountManagementOperations = $true
+        SpecifyNextAccountContent              = $true
+        RenameAccounts                         = $true
+        DeleteAccounts                         = $true
+        UnlockAccounts                         = $true
+        ManageSafe                             = $true
+        ManageSafeMembers                      = $true
+        BackupSafe                             = $true
+        ViewAuditLog                           = $true
+        ViewSafeMembers                        = $true
+        requestsAuthorizationLevel1            = $true
+        #requestsAuthorizationLevel2            = $true
+        AccessWithoutConfirmation              = $true
+        CreateFolders                          = $true
+        DeleteFolders                          = $true
+        MoveAccountsAndFolders                 = $true
+    }
 
-        $Role = [PSCustomObject]@{
-            UseAccounts                            = $true
-            RetrieveAccounts                       = $true
-            ListAccounts                           = $true
-            AddAccounts                            = $false
-            UpdateAccountContent                   = $false
-            UpdateAccountProperties                = $false
-            InitiateCPMAccountManagementOperations = $false
-            SpecifyNextAccountContent              = $false
-            RenameAccounts                         = $false
-            DeleteAccounts                         = $false
-            UnlockAccounts                         = $false
-            ManageSafe                             = $false
-            ManageSafeMembers                      = $false
-            BackupSafe                             = $false
-            ViewAuditLog                           = $false
-            ViewSafeMembers                        = $false
-            RequestsAuthorizationLevel             = $false
-            requestsAuthorizationLevel1            = $false
-            requestsAuthorizationLevel2            = $false
-            AccessWithoutConfirmation              = $false
-            CreateFolders                          = $false
-            DeleteFolders                          = $false
-            MoveAccountsAndFolders                 = $false
+    #If users enter's no then we are going to ask for a name that is going to be added into the safe
+    if ($SAME_USER -eq "No") {
+        $New_FirstName = Read-Host -Prompt "Please enter the first name"
+        $New_LastName = Read-Host -Prompt "Please enter the last name"
+        $Fullname = "{0}.{1}" -f $New_FirstName, $New_LastName
+
+        #Add users to safe's
+        foreach ($User in $Users){
+
+            $FirstName = $User.firstname
+            $LastName = $User.lastname
+            $SafeName = "YOUR-SAFEFORMAT-{0}-{1}-HERE" -f $FirstName, $LastName
+
+            if ($AskRole -eq "Admin") {
+                $Role = $Admin
+            } else {
+                $Role = $AvgUser
+            }
+
+            $Role | Add-PASSafeMember -SafeName $SafeName -MemberName $Fullname -SearchIn Vault
+
         }
 
-        $Role | Add-PASSafeMember -SafeName $SafeName -MemberName $Fullname -SearchIn Vault
+    } else {
+
+        #Add users to safe's
+        foreach ($User in $Users){
+
+            $FirstName = $User.firstname
+            $LastName = $User.lastname
+            #You can change this format according to your needs for exmaple if you have "firstname.lastname" then you can leave this as it is.
+            $Fullname = "{0}.{1}" -f $FirstName, $LastName
+            $SafeName = "YOUR-SAFEFORMAT-{0}-{1}-HERE" -f $FirstName, $LastName
+
+
+            if ($AskRole -eq "Admin") {
+                $Role = $Admin
+            } else {
+                $Role = $AvgUser
+            }
+
+            $Role | Add-PASSafeMember -SafeName $SafeName -MemberName $Fullname -SearchIn Vault
+
+        }
+
 
     }
 
